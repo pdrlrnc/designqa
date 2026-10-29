@@ -20,7 +20,7 @@ import fs from "node:fs";
 
 // --- Placeholders — update these to match your repo structure ---
 const PLACEHOLDER_MANIFEST_PATH = "./manifest.json"; // now pointed at the real manifest
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001"; // swap for 'claude-sonnet-5' if you want stronger reasoning
+const CLAUDE_MODEL = "claude-sonnet-5-5"; // Haiku 4.5 mixed reasoning and multiple JSON blocks into its reply, which broke parsing
 
 // ============================================================
 // ALREADY WIRED — fetch the PR diff
@@ -146,7 +146,7 @@ async function checkDesignCompliance(diff, manifest) {
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 1024,
+      max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     }),
   });
@@ -166,7 +166,8 @@ async function checkDesignCompliance(diff, manifest) {
     };
   }
 
-  const text = data.content?.[0]?.text ?? "";
+  // Models that think return a thinking block first, so find the text block instead of assuming index 0.
+  const text = data.content?.find((block) => block.type === "text")?.text ?? "";
 
   try {
     const cleaned = text.replace(/```json\n?|```\n?/g, "").trim();
